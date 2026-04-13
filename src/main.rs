@@ -11,6 +11,7 @@ use std::{
 
 use crate::clickup::SubmitCommentPayload;
 
+pub mod alias;
 pub mod clickup;
 pub mod token_handler;
 pub mod utils;
@@ -72,6 +73,18 @@ struct Args {
     /// if provided, gets comments for a thread
     #[arg(long, default_value = "")]
     thread_id: String,
+
+    /// if provided, saves request to given name.
+    #[arg(long, default_value = "")]
+    alias_name: String,
+
+    /// if provided true, prints all saved aliases.
+    #[arg(long, default_value = "false")]
+    list_alias: bool,
+
+    /// if provided, executes a stored alias, does nothing if no matches found.
+    #[arg(long, default_value = "")]
+    run: String,
 }
 
 fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
@@ -102,7 +115,7 @@ fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
                 .expect("There was a problem querying for task.");
                 let total = tasks.tasks.len();
 
-                render_task_table(table, tasks.tasks, total);
+                utils::render_task_table(table, tasks.tasks, total);
                 return Ok(());
             }
         }
@@ -231,44 +244,6 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn render_task_table(table: &mut Table, tasks: Vec<clickup::Task>, total: usize) {
-    table.set_header(Row::from(vec!["", "ID", "Created on", "Assigned", "Name"]));
-    for task in tasks.iter() {
-        let id: &str = &task.id;
-        let name: &str = &task.name;
-        let date_created: &str = &task.date_created;
-        let status = &task
-            .status
-            .status
-            .to_uppercase()
-            .chars()
-            .next()
-            .unwrap_or('-');
-        let assignees: Vec<String> = task
-            .assignees
-            .iter()
-            .map(|assignee| format!("{} {}", assignee.username, assignee.id).to_string())
-            .collect();
-
-        // break hex color to ansi
-        let hex_color = task.status.color.trim_start_matches("#");
-        let r = u8::from_str_radix(&hex_color[0..2], 16).unwrap_or(0);
-        let g = u8::from_str_radix(&hex_color[2..4], 16).unwrap_or(0);
-        let b = u8::from_str_radix(&hex_color[4..6], 16).unwrap_or(0);
-        table.add_row(vec![
-            Cell::new(status)
-                .add_attribute(comfy_table::Attribute::Bold)
-                .fg(comfy_table::Color::Rgb { r, g, b }),
-            Cell::from(id),
-            Cell::new(utils::unix_date_to_readable(date_created)),
-            Cell::new(assignees.join(",")),
-            Cell::new(name),
-        ]);
-    }
-    println!("{}", table);
-    println!("Showing {} of {}.", tasks.len(), total);
-}
-
 fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
     // handle fetch actions
     if !args.thread_id.is_empty() {
@@ -342,7 +317,19 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
             })
         };
 
-        render_task_table(table, tasks.tasks, total);
+        utils::render_task_table(table, tasks.tasks, total);
+
+        // check if save alias is provided, if so, save to file
+        if !args.alias_name.is_empty() {
+            alias::save_alias(
+                args.alias_name.as_str(),
+                alias::AliasEntity {
+                    list_id: args.list_id.to_string(),
+                    alias_type: alias::AliasType::Task,
+                },
+            )?;
+        }
+
         return Ok(());
     }
 
@@ -411,6 +398,16 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
 
     if args.modify.is_some() {
         process_modify(&args)?;
+        return Ok(());
+    }
+
+    if args.list_alias {
+        alias::print_aliases()?;
+        return Ok(());
+    }
+
+    if !args.run.is_empty() {
+        alias::run_alias(&args.run, &mut table)?;
         return Ok(());
     }
 

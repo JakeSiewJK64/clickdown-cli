@@ -17,3 +17,47 @@ pub fn get_home_dir() -> String {
 
     home_dir
 }
+
+pub fn render_task_table(table: &mut crate::Table, tasks: Vec<crate::clickup::Task>, total: usize) {
+    table.set_header(crate::Row::from(vec![
+        "",
+        "ID",
+        "Created on",
+        "Assigned",
+        "Name",
+    ]));
+    for task in tasks.iter() {
+        let id: &str = &task.id;
+        let name: &str = &task.name;
+        let date_created: &str = &task.date_created;
+        let status = &task
+            .status
+            .status
+            .to_uppercase()
+            .chars()
+            .next()
+            .unwrap_or('-');
+        let assignees: Vec<String> = task
+            .assignees
+            .iter()
+            .map(|assignee| format!("{} {}", assignee.username, assignee.id).to_string())
+            .collect();
+
+        // break hex color to ansi
+        let hex_color = task.status.color.trim_start_matches("#");
+        let r = u8::from_str_radix(&hex_color[0..2], 16).unwrap_or(0);
+        let g = u8::from_str_radix(&hex_color[2..4], 16).unwrap_or(0);
+        let b = u8::from_str_radix(&hex_color[4..6], 16).unwrap_or(0);
+        table.add_row(vec![
+            crate::Cell::new(status)
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Rgb { r, g, b }),
+            crate::Cell::from(id),
+            crate::Cell::new(unix_date_to_readable(date_created)),
+            crate::Cell::new(assignees.join(",")),
+            crate::Cell::new(name),
+        ]);
+    }
+    println!("{}", table);
+    println!("Showing {} of {}.", tasks.len(), total);
+}

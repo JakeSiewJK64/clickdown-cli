@@ -9,8 +9,6 @@ use std::{
     path::PathBuf,
 };
 
-use crate::clickup::SubmitCommentPayload;
-
 pub mod alias;
 pub mod clickup;
 pub mod token_handler;
@@ -212,7 +210,7 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                         // send comment
                         clickup::submit_comment(
                             &args.task_id,
-                            SubmitCommentPayload {
+                            clickup::SubmitCommentPayload {
                                 notify_all: false,
                                 comment_text: comment,
                             },

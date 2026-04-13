@@ -5,3 +5,15 @@ pub fn unix_date_to_readable(date_milis: &str) -> String {
 
     datetime.format("%Y-%m-%d").to_string()
 }
+
+pub fn get_home_dir() -> String {
+    let mut home_dir = String::from("");
+    if let Some(home) = std::env::home_dir() {
+        home_dir = home
+            .into_os_string()
+            .into_string()
+            .unwrap_or(String::from(""));
+    }
+
+    home_dir
+}

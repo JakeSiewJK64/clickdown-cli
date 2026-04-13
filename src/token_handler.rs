@@ -1,5 +1,5 @@
 pub fn save_token(token: &str) -> Result<(), std::io::Error> {
-    let mut clickdown_folder_path = crate::PathBuf::from(get_home_dir());
+    let mut clickdown_folder_path = crate::PathBuf::from(crate::utils::get_home_dir());
     clickdown_folder_path.push(".config/clickdown/token");
 
     match crate::fs::write(clickdown_folder_path, token) {
@@ -15,20 +15,8 @@ pub fn save_token(token: &str) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-pub fn get_home_dir() -> String {
-    let mut home_dir = String::from("");
-    if let Some(home) = std::env::home_dir() {
-        home_dir = home
-            .into_os_string()
-            .into_string()
-            .unwrap_or(String::from(""));
-    }
-
-    home_dir
-}
-
 pub fn get_clickdown_token() -> Result<String, std::io::Error> {
-    let mut clickdown_folder_path = crate::PathBuf::from(get_home_dir());
+    let mut clickdown_folder_path = crate::PathBuf::from(crate::utils::get_home_dir());
     clickdown_folder_path.push(".config/clickdown");
 
     // create clickdown .config folder if missing

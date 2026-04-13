@@ -74,7 +74,7 @@ struct Args {
     thread_id: String,
 }
 
-fn process_add(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
     // handle create actions
     if let Some(add) = &args.add {
         match add {
@@ -87,6 +87,17 @@ fn process_add(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 clickup::create_task(list_id, &task_name)
                     .expect("There was a problem creating task.");
 
+                // query for tasks upon successful creation.
+                let tasks = clickup::get_tasks(
+                    list_id,
+                    clickup::TaskListsFilters {
+                        assignees: Vec::new(),
+                    },
+                )
+                .expect("There was a problem querying for task.");
+                let total = tasks.tasks.len();
+
+                render_task_table(table, tasks.tasks, total);
                 return Ok(());
             }
         }
@@ -215,6 +226,44 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn render_task_table(table: &mut Table, tasks: Vec<clickup::Task>, total: usize) {
+    table.set_header(Row::from(vec!["", "ID", "Created on", "Assigned", "Name"]));
+    for task in tasks.iter() {
+        let id: &str = &task.id;
+        let name: &str = &task.name;
+        let date_created: &str = &task.date_created;
+        let status = &task
+            .status
+            .status
+            .to_uppercase()
+            .chars()
+            .next()
+            .unwrap_or('-');
+        let assignees: Vec<String> = task
+            .assignees
+            .iter()
+            .map(|assignee| format!("{} {}", assignee.username, assignee.id).to_string())
+            .collect();
+
+        // break hex color to ansi
+        let hex_color = task.status.color.trim_start_matches("#");
+        let r = u8::from_str_radix(&hex_color[0..2], 16).unwrap_or(0);
+        let g = u8::from_str_radix(&hex_color[2..4], 16).unwrap_or(0);
+        let b = u8::from_str_radix(&hex_color[4..6], 16).unwrap_or(0);
+        table.add_row(vec![
+            Cell::new(status)
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Rgb { r, g, b }),
+            Cell::from(id),
+            Cell::new(utils::unix_date_to_readable(date_created)),
+            Cell::new(assignees.join(",")),
+            Cell::new(name),
+        ]);
+    }
+    println!("{}", table);
+    println!("Showing {} of {}.", tasks.len(), total);
+}
+
 fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
     // handle fetch actions
     if !args.thread_id.is_empty() {
@@ -273,7 +322,6 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
         };
         let mut tasks = clickup::get_tasks(&args.list_id, filters).unwrap();
         let total = tasks.tasks.len();
-        table.set_header(Row::from(vec!["", "ID", "Created on", "Assigned", "Name"]));
 
         // filters tasks by status
         if !args.status.is_empty() {
@@ -294,40 +342,7 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
             })
         };
 
-        for task in tasks.tasks.iter() {
-            let id: &str = &task.id;
-            let name: &str = &task.name;
-            let date_created: &str = &task.date_created;
-            let status = &task
-                .status
-                .status
-                .to_uppercase()
-                .chars()
-                .next()
-                .unwrap_or('-');
-            let assignees: Vec<String> = task
-                .assignees
-                .iter()
-                .map(|assignee| format!("{} {}", assignee.username, assignee.id).to_string())
-                .collect();
-
-            // break hex color to ansi
-            let hex_color = task.status.color.trim_start_matches("#");
-            let r = u8::from_str_radix(&hex_color[0..2], 16).unwrap_or(0);
-            let g = u8::from_str_radix(&hex_color[2..4], 16).unwrap_or(0);
-            let b = u8::from_str_radix(&hex_color[4..6], 16).unwrap_or(0);
-            table.add_row(vec![
-                Cell::new(status)
-                    .add_attribute(comfy_table::Attribute::Bold)
-                    .fg(comfy_table::Color::Rgb { r, g, b }),
-                Cell::from(id),
-                Cell::new(utils::unix_date_to_readable(date_created)),
-                Cell::new(assignees.join(",")),
-                Cell::new(name),
-            ]);
-        }
-        println!("{}", table);
-        println!("Showing {} of {}.", tasks.tasks.len(), total);
+        render_task_table(table, tasks.tasks, total);
         return Ok(());
     }
 
@@ -390,7 +405,7 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
     }
 
     if args.add.is_some() {
-        process_add(&args)?;
+        process_add(&args, &mut table)?;
         return Ok(());
     }
 

@@ -23,6 +23,12 @@ enum Domain {
     Comment,
 }
 
+// CREATE directive.When provided, creates a new task.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Add {
+    Task,
+}
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -31,6 +37,9 @@ struct Args {
 
     #[arg(long)]
     modify: Option<Domain>,
+
+    #[arg(long)]
+    add: Option<Add>,
 
     #[arg(long, default_value = "")]
     team_id: String,
@@ -41,7 +50,7 @@ struct Args {
     #[arg(short, long, default_value = "")]
     folder_id: String,
 
-    #[arg(short, long, default_value = "")]
+    #[arg(short, long, default_value = "", required_if_eq("add", "task"))]
     list_id: String,
 
     #[arg(short, long, default_value = "")]
@@ -65,6 +74,23 @@ struct Args {
     thread_id: String,
 }
 
+fn process_add(args: &Args) {
+    // handle create actions
+    if let Some(add) = &args.add {
+        match add {
+            Add::Task => {
+                let list_id = &args.list_id;
+                let task_name = inquire::Text::new("Enter name of task: ")
+                    .prompt()
+                    .expect("There was a problem reading input for task name.");
+
+                clickup::create_task(list_id, &task_name)
+                    .expect("There was a problem creating task.");
+            }
+        }
+    }
+}
+
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
@@ -76,11 +102,13 @@ fn main() -> color_eyre::Result<()> {
 
     // get input arguments
     let args = Args::parse();
-    let token_input = args.token;
+    let token_input = &args.token;
 
     if let Some(token) = token_input {
         token_handler::save_token(token.as_str())?;
     }
+
+    process_add(&args);
 
     // handle modify actions
     // skip this if statement if modify is not provided

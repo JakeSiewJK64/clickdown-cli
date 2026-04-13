@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use colored::Colorize;
 
 #[derive(serde::Deserialize)]
@@ -195,6 +197,34 @@ pub fn get_tasks(
     }
 
     let response: Tasks = request.json()?;
+    Ok(response)
+}
+
+pub fn create_task(list_id: &str, name: &str) -> Result<Task, Box<dyn std::error::Error>> {
+    let client = reqwest::blocking::Client::new();
+    let headers = get_request_header()?;
+
+    // supports only name for now, probably may want to
+    // convert this into a struct in the future.
+    let mut body = HashMap::new();
+    body.insert("name", name);
+
+    let request = client
+        .post(format!(
+            "https://api.clickup.com/api/v2/list/{}/task",
+            list_id
+        ))
+        .json(&body)
+        .headers(headers)
+        .send()?;
+
+    if request.status() != reqwest::StatusCode::OK {
+        let response = request.text()?;
+        eprintln!("{}", response);
+        std::process::exit(1);
+    }
+
+    let response: Task = request.json()?;
     Ok(response)
 }
 

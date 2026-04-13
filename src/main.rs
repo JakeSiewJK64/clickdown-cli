@@ -92,6 +92,11 @@ fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
                     list_id,
                     clickup::TaskListsFilters {
                         assignees: Vec::new(),
+                        statuses: if args.status.is_empty() {
+                            vec![]
+                        } else {
+                            vec![args.status.to_string()]
+                        },
                     },
                 )
                 .expect("There was a problem querying for task.");
@@ -319,19 +324,14 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
 
                 vec![assignee_ids]
             },
+            statuses: if args.status.is_empty() {
+                vec![]
+            } else {
+                vec![args.status.to_string()]
+            },
         };
         let mut tasks = clickup::get_tasks(&args.list_id, filters).unwrap();
         let total = tasks.tasks.len();
-
-        // filters tasks by status
-        if !args.status.is_empty() {
-            tasks.tasks.retain(|task| {
-                task.status
-                    .status
-                    .to_lowercase()
-                    .contains(args.status.to_lowercase().as_str())
-            })
-        };
 
         // filter tasks by search query
         if !args.search.is_empty() {

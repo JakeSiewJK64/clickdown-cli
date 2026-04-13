@@ -166,6 +166,7 @@ pub struct Tasks {
 #[derive(serde::Serialize)]
 pub struct TaskListsFilters {
     pub assignees: Vec<usize>,
+    pub statuses: Vec<String>,
 }
 
 pub fn get_tasks(
@@ -183,6 +184,12 @@ pub fn get_tasks(
     if !filters.assignees.is_empty() {
         for assignee in filters.assignees {
             url.set_query(Some(format!("assignees[]={}", assignee).as_str()));
+        }
+    }
+
+    if !filters.statuses.is_empty() {
+        for status in filters.statuses {
+            url.set_query(Some(format!("statuses[]={}", status).as_str()));
         }
     }
 

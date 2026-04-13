@@ -324,6 +324,7 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
                 alias::AliasEntity {
                     list_id: args.list_id.to_string(),
                     alias_type: alias::AliasType::Task,
+                    status: Some(args.status.to_string()),
                 },
             )?;
         }

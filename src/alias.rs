@@ -9,6 +9,7 @@ pub enum AliasType {
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
     pub list_id: String,
+    pub status: Option<String>,
     pub alias_type: AliasType,
 }
 
@@ -75,13 +76,19 @@ pub fn run_alias(
     let mappings: HashMap<String, AliasEntity> = get_alias_mapping_from_file()?;
     let alias: &AliasEntity = mappings.get(alias_name).unwrap();
 
-    match alias.alias_type {
+    match &alias.alias_type {
         AliasType::Task => {
+            let status_filter = &alias.status;
             let tasks = crate::clickup::get_tasks(
                 &alias.list_id,
                 crate::clickup::TaskListsFilters {
                     assignees: vec![],
-                    statuses: vec![],
+                    statuses: match status_filter {
+                        Some(status) => vec![status.to_string()],
+                        None => {
+                            vec![]
+                        }
+                    },
                 },
             )?;
 

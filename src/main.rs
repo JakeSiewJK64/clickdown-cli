@@ -74,7 +74,7 @@ struct Args {
     thread_id: String,
 }
 
-fn process_add(args: &Args) {
+fn process_add(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // handle create actions
     if let Some(add) = &args.add {
         match add {
@@ -86,33 +86,18 @@ fn process_add(args: &Args) {
 
                 clickup::create_task(list_id, &task_name)
                     .expect("There was a problem creating task.");
+
+                return Ok(());
             }
         }
     }
+    Ok(())
 }
 
-fn main() -> color_eyre::Result<()> {
-    color_eyre::install()?;
-
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_content_arrangement(ContentArrangement::Dynamic);
-
-    // get input arguments
-    let args = Args::parse();
-    let token_input = &args.token;
-
-    if let Some(token) = token_input {
-        token_handler::save_token(token.as_str())?;
-    }
-
-    process_add(&args);
-
+fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // handle modify actions
     // skip this if statement if modify is not provided
-    if let Some(modify) = args.modify {
+    if let Some(modify) = &args.modify {
         match modify {
             Domain::Name => {
                 let Ok(task) = clickup::get_task(&args.task_id) else {
@@ -227,6 +212,10 @@ fn main() -> color_eyre::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
     // handle fetch actions
     if !args.thread_id.is_empty() {
         let thread = clickup::get_thread(args.thread_id.as_str()).unwrap_or(clickup::Comments {
@@ -380,5 +369,36 @@ fn main() -> color_eyre::Result<()> {
     }
 
     println!("{}", table);
+    Ok(())
+}
+
+fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
+    color_eyre::install()?;
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+
+    // get input arguments
+    let args = Args::parse();
+    let token_input = &args.token;
+
+    if let Some(token) = token_input {
+        token_handler::save_token(token.as_str())?;
+    }
+
+    if args.add.is_some() {
+        process_add(&args)?;
+        return Ok(());
+    }
+
+    if args.modify.is_some() {
+        process_modify(&args)?;
+        return Ok(());
+    }
+
+    process_get(&args, &mut table)?;
     Ok(())
 }

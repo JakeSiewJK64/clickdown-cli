@@ -12,6 +12,7 @@ Built for my own use but feel free to try.
 - [x] Update task title.
 - [x] Filter task by status or title.
 - [x] Add task comment.
+- [x] Create a task.
 - [ ] (optional) Pagination.
 - [ ] (optional) Respond to comments.
 - [ ] (optional) Render images to terminal.

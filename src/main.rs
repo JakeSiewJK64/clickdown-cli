@@ -28,8 +28,8 @@ enum Add {
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(long)]
-    token: Option<String>,
+    #[arg(long, default_value = "")]
+    token: String,
 
     #[arg(long)]
     modify: Option<Domain>,
@@ -392,11 +392,8 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
 
     // get input arguments
     let args = Args::parse();
-    let token_input = &args.token;
 
-    if let Some(token) = token_input {
-        token_handler::save_token(token.as_str())?;
-    }
+    token_handler::save_token(&args.token)?;
 
     if args.add.is_some() {
         process_add(&args, &mut table)?;

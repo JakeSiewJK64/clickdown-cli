@@ -319,6 +319,7 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
             alias::save_alias(
                 args.alias.as_str(),
                 alias::AliasEntityDTO {
+                    name: args.alias.to_string(),
                     list_id: args.list_id.to_string(),
                     alias_type: alias::AliasType::Task,
                     status: Some(args.status.to_string()),
@@ -402,8 +403,9 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    if !args.run.is_empty() {
-        alias::run_alias(&args.run, &mut table)?;
+    if args.run.parse::<usize>().is_ok() {
+        let alias_id = &args.run.parse::<usize>()?;
+        alias::run_alias(alias_id, &mut table)?;
         return Ok(());
     }
 

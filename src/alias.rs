@@ -9,10 +9,10 @@ pub enum AliasType {
 /// what you save
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
-    pub id: usize,
     pub list_id: String,
     pub status: Option<String>,
     pub alias_type: AliasType,
+    pub name: String,
 }
 
 /// what you consume
@@ -21,9 +21,10 @@ pub struct AliasEntityDTO {
     pub list_id: String,
     pub status: Option<String>,
     pub alias_type: AliasType,
+    pub name: String,
 }
 
-fn get_alias_mapping_from_file() -> Result<HashMap<String, AliasEntity>, Box<dyn std::error::Error>>
+fn get_alias_mapping_from_file() -> Result<HashMap<usize, AliasEntity>, Box<dyn std::error::Error>>
 {
     let clickdown_folder_path = get_alias_file_path_buf()?;
     let mut file_reader = std::fs::OpenOptions::new()
@@ -35,7 +36,7 @@ fn get_alias_mapping_from_file() -> Result<HashMap<String, AliasEntity>, Box<dyn
 
     // seed sample alias entry
     let mut string_content = String::from("");
-    let mut mappings: HashMap<String, AliasEntity> = HashMap::new();
+    let mut mappings: HashMap<usize, AliasEntity> = HashMap::new();
     file_reader.read_to_string(&mut string_content)?;
 
     if !string_content.is_empty() {
@@ -63,9 +64,9 @@ pub fn save_alias(
     //  get existing aliases
     let mut mapping = get_alias_mapping_from_file()?;
     mapping.insert(
-        alias_name.to_string(),
+        mapping.len(),
         AliasEntity {
-            id: mapping.len(),
+            name: payload.name,
             list_id: payload.list_id,
             alias_type: payload.alias_type,
             status: Some(payload.status.unwrap_or("".to_string())),
@@ -93,22 +94,28 @@ pub fn save_alias(
 pub fn print_aliases() -> Result<(), Box<dyn std::error::Error>> {
     println!("Saved aliases:");
     let mappings = get_alias_mapping_from_file()?;
-    for (name, alias) in &mappings {
+
+    println!("{:<15} {:<15} {:<15}", "ID", "Type", "Name");
+    for (id, alias) in &mappings {
+        let name = &alias.name;
         let alias_type: &str = match alias.alias_type {
             AliasType::Task => "task",
         };
-        println!("- {name}\t{alias_type}");
+        println!("{:<15} {:<15} {:<15}", id, alias_type, name);
     }
 
     Ok(())
 }
 
 pub fn run_alias(
-    alias_name: &str,
+    alias_id: &usize,
     table: &mut crate::Table,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mappings: HashMap<String, AliasEntity> = get_alias_mapping_from_file()?;
-    let alias: &AliasEntity = mappings.get(alias_name).unwrap();
+    let mappings: HashMap<usize, AliasEntity> = get_alias_mapping_from_file()?;
+    let alias: &AliasEntity = mappings.get(alias_id).unwrap();
+    let alias_name = &alias.name;
+
+    println!("Running alias: {}", alias_name);
 
     match &alias.alias_type {
         AliasType::Task => {

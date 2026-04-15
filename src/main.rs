@@ -323,6 +323,7 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
                     list_id: args.list_id.to_string(),
                     alias_type: alias::AliasType::Task,
                     status: Some(args.status.to_string()),
+                    ..Default::default()
                 },
             )?;
         }
@@ -354,6 +355,21 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
         let comments = clickup::get_task_comments(args.task_id.as_str()).unwrap();
 
         clickup::print_task_details(task, comments);
+
+        // check if save alias is provided, if so, save to file
+        if !args.alias.is_empty() {
+            alias::save_alias(
+                args.alias.as_str(),
+                alias::AliasEntityDTO {
+                    task_id: args.task_id.to_string(),
+                    name: args.alias.to_string(),
+                    list_id: args.list_id.to_string(),
+                    alias_type: alias::AliasType::TaskDetails,
+                    status: Some(args.status.to_string()),
+                },
+            )?;
+        }
+
         return Ok(());
     }
 

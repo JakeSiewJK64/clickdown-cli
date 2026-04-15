@@ -4,15 +4,29 @@ use std::{collections::HashMap, io::Read};
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum AliasType {
     Task,
+    TaskDetails,
 }
 
 /// what you save
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
     pub list_id: String,
+    pub task_id: Option<String>,
     pub status: Option<String>,
     pub alias_type: AliasType,
     pub name: String,
+}
+
+impl Default for AliasEntity {
+    fn default() -> Self {
+        Self {
+            list_id: Default::default(),
+            status: Default::default(),
+            alias_type: AliasType::Task,
+            name: Default::default(),
+            task_id: Default::default(),
+        }
+    }
 }
 
 /// what you consume
@@ -22,6 +36,19 @@ pub struct AliasEntityDTO {
     pub status: Option<String>,
     pub alias_type: AliasType,
     pub name: String,
+    pub task_id: String,
+}
+
+impl Default for AliasEntityDTO {
+    fn default() -> Self {
+        Self {
+            list_id: Default::default(),
+            task_id: Default::default(),
+            status: Default::default(),
+            alias_type: AliasType::Task,
+            name: Default::default(),
+        }
+    }
 }
 
 fn get_alias_mapping_from_file() -> Result<HashMap<usize, AliasEntity>, Box<dyn std::error::Error>>
@@ -66,6 +93,7 @@ pub fn save_alias(
     mapping.insert(
         mapping.len(),
         AliasEntity {
+            task_id: Some(payload.task_id.to_string()),
             name: payload.name,
             list_id: payload.list_id,
             alias_type: payload.alias_type,
@@ -100,6 +128,7 @@ pub fn print_aliases() -> Result<(), Box<dyn std::error::Error>> {
         let name = &alias.name;
         let alias_type: &str = match alias.alias_type {
             AliasType::Task => "task",
+            AliasType::TaskDetails => "task_details",
         };
         println!("{:<15} {:<15} {:<15}", id, alias_type, name);
     }
@@ -135,6 +164,19 @@ pub fn run_alias(
 
             let total = tasks.tasks.len();
             crate::utils::render_task_table(table, tasks.tasks, total);
+            Ok(())
+        }
+        AliasType::TaskDetails => {
+            if let Some(task_id) = &alias.task_id {
+                let Ok(task) = crate::clickup::get_task(task_id) else {
+                    println!("Could not find task with ID {}", task_id);
+                    return Ok(());
+                };
+                let comments = crate::clickup::get_task_comments(task_id).unwrap();
+
+                crate::clickup::print_task_details(task, comments);
+            }
+
             Ok(())
         }
     }

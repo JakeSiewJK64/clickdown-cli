@@ -88,7 +88,7 @@ pub fn save_alias(payload: AliasEntityDTO) -> Result<(), Box<dyn std::error::Err
     //  get existing aliases
     let mut mapping = get_alias_mapping_from_file()?;
     mapping.insert(
-        mapping.len(),
+        mapping.len() + 1,
         AliasEntity {
             task_id: Some(payload.task_id.to_string()),
             name: payload.name,

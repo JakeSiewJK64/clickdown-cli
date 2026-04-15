@@ -4,10 +4,7 @@ use comfy_table::{
     Cell, ContentArrangement, Row, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL,
 };
 use inquire::{Select, Text};
-use std::{
-    fs::{self},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 pub mod alias;
 pub mod clickup;
@@ -74,7 +71,7 @@ struct Args {
 
     /// if provided, saves request to given name.
     #[arg(long, default_value = "")]
-    alias_name: String,
+    alias: String,
 
     /// if provided true, prints all saved aliases.
     #[arg(long, default_value = "false")]
@@ -318,10 +315,10 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
         utils::render_task_table(table, tasks.tasks, total);
 
         // check if save alias is provided, if so, save to file
-        if !args.alias_name.is_empty() {
+        if !args.alias.is_empty() {
             alias::save_alias(
-                args.alias_name.as_str(),
-                alias::AliasEntity {
+                args.alias.as_str(),
+                alias::AliasEntityDTO {
                     list_id: args.list_id.to_string(),
                     alias_type: alias::AliasType::Task,
                     status: Some(args.status.to_string()),

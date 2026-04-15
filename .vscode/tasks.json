@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Update/Install clickdown-cli global.",
+      "type": "shell",
+      "command": "cargo install --path . -j 4",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

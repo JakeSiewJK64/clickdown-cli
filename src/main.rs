@@ -316,16 +316,13 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {
-            alias::save_alias(
-                args.alias.as_str(),
-                alias::AliasEntityDTO {
-                    name: args.alias.to_string(),
-                    list_id: args.list_id.to_string(),
-                    alias_type: alias::AliasType::Task,
-                    status: Some(args.status.to_string()),
-                    ..Default::default()
-                },
-            )?;
+            alias::save_alias(alias::AliasEntityDTO {
+                name: args.alias.to_string(),
+                list_id: args.list_id.to_string(),
+                alias_type: alias::AliasType::Task,
+                status: Some(args.status.to_string()),
+                ..Default::default()
+            })?;
         }
 
         return Ok(());
@@ -358,16 +355,13 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {
-            alias::save_alias(
-                args.alias.as_str(),
-                alias::AliasEntityDTO {
-                    task_id: args.task_id.to_string(),
-                    name: args.alias.to_string(),
-                    list_id: args.list_id.to_string(),
-                    alias_type: alias::AliasType::TaskDetails,
-                    status: Some(args.status.to_string()),
-                },
-            )?;
+            alias::save_alias(alias::AliasEntityDTO {
+                task_id: args.task_id.to_string(),
+                name: args.alias.to_string(),
+                list_id: args.list_id.to_string(),
+                alias_type: alias::AliasType::TaskDetails,
+                status: Some(args.status.to_string()),
+            })?;
         }
 
         return Ok(());

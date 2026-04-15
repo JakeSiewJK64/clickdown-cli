@@ -82,11 +82,8 @@ fn get_alias_file_path_buf() -> Result<crate::PathBuf, Box<dyn std::error::Error
     Ok(clickdown_folder_path)
 }
 
-pub fn save_alias(
-    alias_name: &str,
-    payload: AliasEntityDTO,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Alias provided, saving as {}", alias_name);
+pub fn save_alias(payload: AliasEntityDTO) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Alias provided, saving as {}", payload.name);
 
     //  get existing aliases
     let mut mapping = get_alias_mapping_from_file()?;

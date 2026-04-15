@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read};
+use std::{collections::HashMap, io::Read};
 
 // CREATE directive.When provided, creates a new task.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -6,8 +6,18 @@ pub enum AliasType {
     Task,
 }
 
+/// what you save
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
+    pub id: usize,
+    pub list_id: String,
+    pub status: Option<String>,
+    pub alias_type: AliasType,
+}
+
+/// what you consume
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct AliasEntityDTO {
     pub list_id: String,
     pub status: Option<String>,
     pub alias_type: AliasType,
@@ -16,10 +26,21 @@ pub struct AliasEntity {
 fn get_alias_mapping_from_file() -> Result<HashMap<String, AliasEntity>, Box<dyn std::error::Error>>
 {
     let clickdown_folder_path = get_alias_file_path_buf()?;
-    let mut file_reader = File::open(clickdown_folder_path)?;
-    let mut string_content = String::new();
+    let mut file_reader = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&clickdown_folder_path)?;
+
+    // seed sample alias entry
+    let mut string_content = String::from("");
+    let mut mappings: HashMap<String, AliasEntity> = HashMap::new();
     file_reader.read_to_string(&mut string_content)?;
-    let mappings: HashMap<String, AliasEntity> = serde_json::from_str(&string_content)?;
+
+    if !string_content.is_empty() {
+        mappings = serde_json::from_str(&string_content)?
+    }
 
     Ok(mappings)
 }
@@ -35,15 +56,28 @@ fn get_alias_file_path_buf() -> Result<crate::PathBuf, Box<dyn std::error::Error
 
 pub fn save_alias(
     alias_name: &str,
-    payload: AliasEntity,
+    payload: AliasEntityDTO,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let clickdown_folder_path = get_alias_file_path_buf()?;
+    println!("Alias provided, saving as {}", alias_name);
+
+    //  get existing aliases
     let mut mapping = get_alias_mapping_from_file()?;
-    mapping.insert(alias_name.to_string(), payload);
+    mapping.insert(
+        alias_name.to_string(),
+        AliasEntity {
+            id: mapping.len(),
+            list_id: payload.list_id,
+            alias_type: payload.alias_type,
+            status: Some(payload.status.unwrap_or("".to_string())),
+        },
+    );
 
+    // save content to json file
+    println!("Saving content alias, please wait...");
     let serialized_args = serde_json::to_string_pretty(&mapping)?;
+    let clickdown_folder_path = get_alias_file_path_buf()?;
 
-    match crate::fs::write(clickdown_folder_path, serialized_args) {
+    match std::fs::write(clickdown_folder_path, serialized_args) {
         Ok(value) => {
             println!("Saved alias at ~/.config/clickdown/aliases.json");
             value

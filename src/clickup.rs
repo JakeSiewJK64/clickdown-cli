@@ -376,6 +376,30 @@ pub fn submit_comment(
     Ok(())
 }
 
+pub fn submit_thread_comment(
+    thread_id: &str,
+    payload: SubmitCommentPayload,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::blocking::Client::new();
+    let headers = get_request_header()?;
+    let request = client
+        .post(format!(
+            "https://api.clickup.com/api/v2/comment/{}/reply",
+            thread_id
+        ))
+        .headers(headers)
+        .json(&payload)
+        .send()?;
+
+    if request.status() != reqwest::StatusCode::OK {
+        let response = request.text()?;
+        eprintln!("{}", response);
+        std::process::exit(1);
+    }
+
+    Ok(())
+}
+
 pub fn print_task_details(task: Task, comments: Comments) {
     println!("Title: {} ({})", task.name, task.id);
     println!("URL: {}", task.url);
@@ -394,7 +418,6 @@ pub fn print_task_details(task: Task, comments: Comments) {
     }
 
     println!("Comments: ");
-    println!("_________________________________________________________________________");
     for comment in comments.comments.into_iter() {
         print_comment(comment);
     }

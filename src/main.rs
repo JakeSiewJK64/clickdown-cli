@@ -1,10 +1,10 @@
 use chrono::DateTime;
 use clap::{Parser, ValueEnum};
-use comfy_table::{
-    Cell, ContentArrangement, Row, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL,
-};
+use comfy_table::{Cell, ContentArrangement, Row, Table, presets::NOTHING};
 use inquire::{Select, Text};
 use std::path::PathBuf;
+
+use crate::utils::render_table;
 
 pub mod alias;
 pub mod clickup;
@@ -239,12 +239,6 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_content_arrangement(ContentArrangement::Dynamic);
-
     // handle fetch actions
     if !args.thread_id.is_empty() {
         let thread = clickup::get_thread(args.thread_id.as_str()).unwrap_or(clickup::Comments {
@@ -262,27 +256,34 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     if !args.team_id.is_empty() {
         let spaces = clickup::get_spaces(args.team_id.as_str())
             .unwrap_or(clickup::Spaces { spaces: Vec::new() });
-        table.set_header(Row::from(vec!["ID", "Name"]));
+        let headers: Vec<&str> = vec!["ID", "Name"];
+        let mut rows: Vec<Vec<Cell>> = vec![];
         for space in spaces.spaces.iter() {
             let id: &str = &space.id;
             let name: &str = &space.name;
-            table.add_row(vec![id, name]);
+            rows.push(vec![Cell::from(id), Cell::from(name)]);
         }
-        println!("{}", table);
+        render_table(headers, rows);
         return Ok(());
     }
 
     if !args.folder_id.is_empty() {
         let lists =
             clickup::get_lists(&args.folder_id).unwrap_or(clickup::Lists { lists: Vec::new() });
-        table.set_header(Row::from(vec!["ID", "Name", "Task count"]));
+        let header = vec!["ID", "Name", "Task count"];
+        let mut rows: Vec<Vec<Cell>> = vec![];
+
         for space in lists.lists.iter() {
             let id: &str = &space.id;
             let name: &str = &space.name;
             let task_count: usize = space.task_count.unwrap_or_default();
-            table.add_row(vec![id, name, task_count.to_string().as_str()]);
+            rows.push(vec![
+                Cell::from(id),
+                Cell::from(name),
+                Cell::from(task_count.to_string().as_str()),
+            ]);
         }
-        println!("{}", table);
+        render_table(header, rows);
         return Ok(());
     }
 
@@ -341,14 +342,19 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             folders: Vec::new(),
         });
 
-        table.set_header(Row::from(vec!["ID", "Name", "Task count"]));
+        let header: Vec<&str> = vec!["ID", "Name", "Task count"];
+        let mut rows: Vec<Vec<Cell>> = vec![];
         for folder in folders.folders.iter() {
             let id: &str = &folder.id;
             let name: &str = &folder.name;
             let task_count: &str = folder.task_count.as_deref().unwrap_or_default();
-            table.add_row(vec![id, name, task_count]);
+            rows.push(vec![
+                Cell::from(id),
+                Cell::from(name),
+                Cell::from(task_count),
+            ]);
         }
-        println!("{}", table);
+        render_table(header, rows);
         return Ok(());
     }
 
@@ -379,14 +385,14 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // default if no ids given, just fetch for workspaces
     let workspaces = clickup::get_authorized_workspaces()
         .unwrap_or(clickup::AuthorizedWorkspaces { teams: Vec::new() });
-    table.set_header(Row::from(vec!["ID", "Name"]));
+    let headers: Vec<&str> = vec!["ID", "Name"];
+    let mut rows: Vec<Vec<Cell>> = vec![];
     for workspace in workspaces.teams.iter() {
         let name: &str = &workspace.name;
         let id: &str = &workspace.id;
-        table.add_row(vec![id, name]);
+        rows.push(vec![Cell::from(id), Cell::from(name)]);
     }
-
-    println!("{}", table);
+    render_table(headers, rows);
     Ok(())
 }
 

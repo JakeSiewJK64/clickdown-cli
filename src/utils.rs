@@ -21,8 +21,7 @@ pub fn get_home_dir() -> String {
 pub fn render_table(columns: Vec<&str>, rows: Vec<Vec<crate::Cell>>) {
     let mut table = crate::Table::new();
     table
-        .load_preset(crate::UTF8_FULL)
-        .apply_modifier(crate::UTF8_ROUND_CORNERS)
+        .load_preset(crate::NOTHING)
         .set_content_arrangement(crate::ContentArrangement::Dynamic);
     table.set_header(crate::Row::from(columns));
     table.add_rows(rows);

@@ -13,7 +13,7 @@ pub mod utils;
 
 // when updating a task, you can choose the following to update
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum Domain {
+pub enum Domain {
     Status,
     Name,
     Comment,
@@ -21,13 +21,13 @@ enum Domain {
 
 // CREATE directive.When provided, creates a new task.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum Add {
+pub enum Add {
     Task,
 }
 
-#[derive(Parser, Default)]
+#[derive(Clone, Parser, Default)]
 #[command(version, about, long_about = None)]
-struct Args {
+pub struct Args {
     #[arg(long, default_value = "")]
     token: String,
 
@@ -310,12 +310,15 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {
-            alias::save_alias(alias::AliasEntityDTO {
+            alias::save_alias(alias::AliasEntity {
                 name: args.alias.to_string(),
-                list_id: args.list_id.to_string(),
                 alias_type: alias::AliasType::Task,
-                status: Some(args.status.to_string()),
-                ..Default::default()
+                args: crate::alias::ArgsDTO {
+                    list_id: args.list_id.to_string(),
+                    status: args.status.to_string(),
+                    assignee: args.assignee.to_string(),
+                    ..Default::default()
+                },
             })?;
         }
 
@@ -349,12 +352,13 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {
-            alias::save_alias(alias::AliasEntityDTO {
-                task_id: args.task_id.to_string(),
+            alias::save_alias(alias::AliasEntity {
                 name: args.alias.to_string(),
-                list_id: args.list_id.to_string(),
                 alias_type: alias::AliasType::TaskDetails,
-                status: Some(args.status.to_string()),
+                args: alias::ArgsDTO {
+                    task_id: args.task_id.to_string(),
+                    ..Default::default()
+                },
             })?;
         }
 

@@ -7,44 +7,34 @@ pub enum AliasType {
     TaskDetails,
 }
 
+/// its args but... only fields that matter
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+pub struct ArgsDTO {
+    pub team_id: String,
+    pub space_id: String,
+    pub folder_id: String,
+    pub list_id: String,
+    pub task_id: String,
+    pub status: String,
+    pub search: String,
+    pub assignee: String,
+    pub thread_id: String,
+}
+
 /// what you save
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
-    pub list_id: Option<String>,
-    pub task_id: Option<String>,
-    pub status: Option<String>,
     pub alias_type: AliasType,
     pub name: String,
+    pub args: ArgsDTO,
 }
 
 impl Default for AliasEntity {
     fn default() -> Self {
         Self {
-            list_id: Default::default(),
-            status: Default::default(),
-            alias_type: AliasType::Task,
-            name: Default::default(),
-            task_id: Default::default(),
-        }
-    }
-}
-
-/// what you consume
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct AliasEntityDTO {
-    pub list_id: String,
-    pub status: Option<String>,
-    pub alias_type: AliasType,
-    pub name: String,
-    pub task_id: String,
-}
-
-impl Default for AliasEntityDTO {
-    fn default() -> Self {
-        Self {
-            list_id: Default::default(),
-            task_id: Default::default(),
-            status: Default::default(),
+            args: ArgsDTO {
+                ..Default::default()
+            },
             alias_type: AliasType::Task,
             name: Default::default(),
         }
@@ -82,21 +72,12 @@ fn get_alias_file_path_buf() -> Result<crate::PathBuf, Box<dyn std::error::Error
     Ok(clickdown_folder_path)
 }
 
-pub fn save_alias(payload: AliasEntityDTO) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_alias(payload: AliasEntity) -> Result<(), Box<dyn std::error::Error>> {
     println!("Alias provided, saving as {}", payload.name);
 
     //  get existing aliases
     let mut mapping = get_alias_mapping_from_file()?;
-    mapping.insert(
-        mapping.len() + 1,
-        AliasEntity {
-            task_id: Some(payload.task_id.to_string()),
-            name: payload.name,
-            list_id: Some(payload.list_id),
-            alias_type: payload.alias_type,
-            status: Some(payload.status.unwrap_or("".to_string())),
-        },
-    );
+    mapping.insert(mapping.len() + 1, payload);
 
     // save content to json file
     println!("Saving content alias, please wait...");
@@ -135,43 +116,27 @@ pub fn print_aliases() -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn run_alias(alias_id: &usize) -> Result<(), Box<dyn std::error::Error>> {
     let mappings: HashMap<usize, AliasEntity> = get_alias_mapping_from_file()?;
+
+    if !mappings.contains_key(alias_id) {
+        eprintln!("No alias matches ID: {}", alias_id);
+        return Ok(());
+    }
+
     let alias: &AliasEntity = mappings.get(alias_id).unwrap();
     let alias_name = &alias.name;
 
     println!("Running alias: {}", alias_name);
-
-    match &alias.alias_type {
-        AliasType::TaskDetails => {
-            if let Some(task_id) = &alias.task_id {
-                if task_id.is_empty() {
-                    return Ok(());
-                }
-
-                let args = &crate::Args {
-                    task_id: task_id.to_string(),
-                    ..Default::default()
-                };
-
-                crate::process_get(args)?;
-            }
-
-            Ok(())
-        }
-        AliasType::Task => {
-            if let Some(list_id) = &alias.list_id {
-                let args = &crate::Args {
-                    list_id: list_id.to_string(),
-                    status: match &alias.status {
-                        Some(status) => status.to_string(),
-                        None => "".to_string(),
-                    },
-                    ..Default::default()
-                };
-
-                crate::process_get(args)?;
-            }
-
-            Ok(())
-        }
-    }
+    crate::process_get(&crate::Args {
+        folder_id: alias.args.folder_id.to_string(),
+        team_id: alias.args.team_id.to_string(),
+        space_id: alias.args.space_id.to_string(),
+        list_id: alias.args.list_id.to_string(),
+        task_id: alias.args.task_id.to_string(),
+        status: alias.args.status.to_string(),
+        search: alias.args.search.to_string(),
+        assignee: alias.args.assignee.to_string(),
+        thread_id: alias.args.thread_id.to_string(),
+        ..Default::default()
+    })?;
+    Ok(())
 }

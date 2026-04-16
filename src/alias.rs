@@ -10,7 +10,7 @@ pub enum AliasType {
 /// what you save
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct AliasEntity {
-    pub list_id: String,
+    pub list_id: Option<String>,
     pub task_id: Option<String>,
     pub status: Option<String>,
     pub alias_type: AliasType,
@@ -92,7 +92,7 @@ pub fn save_alias(payload: AliasEntityDTO) -> Result<(), Box<dyn std::error::Err
         AliasEntity {
             task_id: Some(payload.task_id.to_string()),
             name: payload.name,
-            list_id: payload.list_id,
+            list_id: Some(payload.list_id),
             alias_type: payload.alias_type,
             status: Some(payload.status.unwrap_or("".to_string())),
         },
@@ -133,10 +133,7 @@ pub fn print_aliases() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn run_alias(
-    alias_id: &usize,
-    table: &mut crate::Table,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_alias(alias_id: &usize) -> Result<(), Box<dyn std::error::Error>> {
     let mappings: HashMap<usize, AliasEntity> = get_alias_mapping_from_file()?;
     let alias: &AliasEntity = mappings.get(alias_id).unwrap();
     let alias_name = &alias.name;
@@ -144,34 +141,34 @@ pub fn run_alias(
     println!("Running alias: {}", alias_name);
 
     match &alias.alias_type {
-        AliasType::Task => {
-            let status_filter = &alias.status;
-            let tasks = crate::clickup::get_tasks(
-                &alias.list_id,
-                crate::clickup::TaskListsFilters {
-                    assignees: vec![],
-                    statuses: match status_filter {
-                        Some(status) => vec![status.to_string()],
-                        None => {
-                            vec![]
-                        }
-                    },
-                },
-            )?;
-
-            let total = tasks.tasks.len();
-            crate::utils::render_task_table(table, tasks.tasks, total);
-            Ok(())
-        }
         AliasType::TaskDetails => {
             if let Some(task_id) = &alias.task_id {
-                let Ok(task) = crate::clickup::get_task(task_id) else {
-                    println!("Could not find task with ID {}", task_id);
+                if task_id.is_empty() {
                     return Ok(());
-                };
-                let comments = crate::clickup::get_task_comments(task_id).unwrap();
+                }
 
-                crate::clickup::print_task_details(task, comments);
+                let args = &crate::Args {
+                    task_id: task_id.to_string(),
+                    ..Default::default()
+                };
+
+                crate::process_get(args)?;
+            }
+
+            Ok(())
+        }
+        AliasType::Task => {
+            if let Some(list_id) = &alias.list_id {
+                let args = &crate::Args {
+                    list_id: list_id.to_string(),
+                    status: match &alias.status {
+                        Some(status) => status.to_string(),
+                        None => "".to_string(),
+                    },
+                    ..Default::default()
+                };
+
+                crate::process_get(args)?;
             }
 
             Ok(())

@@ -72,13 +72,9 @@ fn get_alias_file_path_buf() -> Result<crate::PathBuf, Box<dyn std::error::Error
     Ok(clickdown_folder_path)
 }
 
-pub fn save_alias(payload: AliasEntity) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Alias provided, saving as {}", payload.name);
-
-    //  get existing aliases
-    let mut mapping = get_alias_mapping_from_file()?;
-    mapping.insert(mapping.len() + 1, payload);
-
+fn write_alias_to_file(
+    mapping: HashMap<usize, AliasEntity>,
+) -> Result<(), Box<dyn std::error::Error>> {
     // save content to json file
     println!("Saving content alias, please wait...");
     let serialized_args = serde_json::to_string_pretty(&mapping)?;
@@ -95,6 +91,24 @@ pub fn save_alias(payload: AliasEntity) -> Result<(), Box<dyn std::error::Error>
     };
 
     Ok(())
+}
+
+pub fn save_alias(payload: AliasEntity) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Alias provided, saving as {}", payload.name);
+
+    //  get existing aliases
+    let mut mapping = get_alias_mapping_from_file()?;
+    mapping.insert(mapping.len() + 1, payload);
+
+    write_alias_to_file(mapping)
+}
+
+pub fn delete_alias(alias_id: usize) -> Result<(), Box<dyn std::error::Error>> {
+    //  get existing aliases
+    let mut mapping = get_alias_mapping_from_file()?;
+    mapping.remove(&alias_id);
+
+    write_alias_to_file(mapping)
 }
 
 pub fn print_aliases() -> Result<(), Box<dyn std::error::Error>> {

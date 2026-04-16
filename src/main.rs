@@ -25,6 +25,11 @@ pub enum Add {
     Task,
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Delete {
+    Alias,
+}
+
 #[derive(Parser, Default)]
 #[command(version, about, long_about = None)]
 pub struct Args {
@@ -36,6 +41,9 @@ pub struct Args {
 
     #[arg(long)]
     add: Option<Add>,
+
+    #[arg(long)]
+    delete: Option<Delete>,
 
     #[arg(long, default_value = "")]
     team_id: String,
@@ -80,6 +88,9 @@ pub struct Args {
     /// if provided, executes a stored alias, does nothing if no matches found.
     #[arg(long, default_value = "")]
     run: String,
+
+    #[arg(long, default_value = "", required_if_eq("delete", "alias"))]
+    alias_id: String,
 }
 
 fn process_add(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
@@ -379,6 +390,25 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn process_delete(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(delete) = &args.delete {
+        match delete {
+            Delete::Alias => {
+                if !&args.alias_id.parse::<usize>().is_ok() {
+                    eprintln!("Invalid alias id provided: {}", &args.alias_id);
+                    return Ok(());
+                }
+
+                let alias_id = args.alias_id.parse::<usize>().unwrap();
+                alias::delete_alias(alias_id)?;
+                return Ok(());
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
     color_eyre::install()?;
 
@@ -389,6 +419,11 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
 
     if args.add.is_some() {
         process_add(&args)?;
+        return Ok(());
+    }
+
+    if args.delete.is_some() {
+        process_delete(&args)?;
         return Ok(());
     }
 

@@ -25,7 +25,7 @@ enum Add {
     Task,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Default)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(long, default_value = "")]
@@ -82,7 +82,7 @@ struct Args {
     run: String,
 }
 
-fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
+fn process_add(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // handle create actions
     if let Some(add) = &args.add {
         match add {
@@ -95,22 +95,10 @@ fn process_add(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
                 clickup::create_task(list_id, &task_name)
                     .expect("There was a problem creating task.");
 
-                // query for tasks upon successful creation.
-                let tasks = clickup::get_tasks(
-                    list_id,
-                    clickup::TaskListsFilters {
-                        assignees: Vec::new(),
-                        statuses: if args.status.is_empty() {
-                            vec![]
-                        } else {
-                            vec![args.status.to_string()]
-                        },
-                    },
-                )
-                .expect("There was a problem querying for task.");
-                let total = tasks.tasks.len();
-
-                utils::render_task_table(table, tasks.tasks, total);
+                process_get(&Args {
+                    list_id: list_id.to_string(),
+                    ..Default::default()
+                })?;
                 return Ok(());
             }
         }
@@ -239,7 +227,13 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error::Error>> {
+fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+
     // handle fetch actions
     if !args.thread_id.is_empty() {
         let thread = clickup::get_thread(args.thread_id.as_str()).unwrap_or(clickup::Comments {
@@ -312,7 +306,7 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
             })
         };
 
-        utils::render_task_table(table, tasks.tasks, total);
+        utils::render_task_table(&mut table, tasks.tasks, total);
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {
@@ -384,19 +378,13 @@ fn process_get(args: &Args, table: &mut Table) -> Result<(), Box<dyn std::error:
 fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
     color_eyre::install()?;
 
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_content_arrangement(ContentArrangement::Dynamic);
-
     // get input arguments
     let args = Args::parse();
 
     token_handler::save_token(&args.token)?;
 
     if args.add.is_some() {
-        process_add(&args, &mut table)?;
+        process_add(&args)?;
         return Ok(());
     }
 
@@ -412,10 +400,10 @@ fn main() -> color_eyre::Result<(), Box<dyn std::error::Error>> {
 
     if args.run.parse::<usize>().is_ok() {
         let alias_id = &args.run.parse::<usize>()?;
-        alias::run_alias(alias_id, &mut table)?;
+        alias::run_alias(alias_id)?;
         return Ok(());
     }
 
-    process_get(&args, &mut table)?;
+    process_get(&args)?;
     Ok(())
 }

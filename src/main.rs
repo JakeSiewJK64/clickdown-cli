@@ -25,7 +25,7 @@ pub enum Add {
     Task,
 }
 
-#[derive(Clone, Parser, Default)]
+#[derive(Parser, Default)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     #[arg(long, default_value = "")]

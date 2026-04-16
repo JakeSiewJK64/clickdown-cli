@@ -14,7 +14,7 @@ Built for my own use but feel free to try.
 - [x] Add task comment.
 - [x] Create a task.
 - [ ] (optional) Pagination.
-- [ ] (optional) Respond to comments.
+- [x] (optional) Respond to comments.
 - [ ] (optional) Render images to terminal.
 - [ ] (optional) Assign members to task.
 - [ ] (optional) Caching because each call is expensive if the task list is long.

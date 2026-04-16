@@ -66,6 +66,6 @@ pub fn render_task_table(tasks: Vec<crate::clickup::Task>, total: usize) {
         ];
         rows.push(row);
     }
-    println!("Showing {} of {}.", tasks.len(), total);
     render_table(header, rows);
+    println!("Showing {} of {}.", tasks.len(), total);
 }

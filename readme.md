@@ -27,9 +27,10 @@ CLI application to interface with ClickUP APIs.
 Usage: clickdown-cli [OPTIONS]
 
 Options:
-      --token <TOKEN>          
+      --token <TOKEN>          [default: ""]
       --modify <MODIFY>        [possible values: status, name, comment]
       --add <ADD>              [possible values: task]
+      --delete <DELETE>        [possible values: alias]
       --team-id <TEAM_ID>      [default: ""]
   -s, --space-id <SPACE_ID>    [default: ""]
   -f, --folder-id <FOLDER_ID>  [default: ""]
@@ -39,6 +40,10 @@ Options:
       --search <SEARCH>        if provided, filters tasks by search query [default: ""]
       --assignee <ASSIGNEE>    if provided, filters tasks by asignee currently filtering by only 1 assignee supported [default: ""]
       --thread-id <THREAD_ID>  if provided, gets comments for a thread [default: ""]
+      --alias <ALIAS>          if provided, saves request to given name [default: ""]
+      --list-alias             if provided true, prints all saved aliases
+      --run <RUN>              if provided, executes a stored alias, does nothing if no matches found [default: ""]
+      --alias-id <ALIAS_ID>    [default: ""]
   -h, --help                   Print help
   -V, --version                Print version
 

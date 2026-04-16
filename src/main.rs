@@ -306,7 +306,7 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             })
         };
 
-        utils::render_task_table(&mut table, tasks.tasks, total);
+        utils::render_task_table(tasks.tasks, total);
 
         // check if save alias is provided, if so, save to file
         if !args.alias.is_empty() {

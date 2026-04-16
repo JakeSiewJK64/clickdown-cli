@@ -424,6 +424,7 @@ pub fn get_folder(folder_id: &str) -> Result<Folder, Box<dyn std::error::Error>>
 
 pub fn print_comment(comment: Comment) {
     // print comment author
+    println!("_________________________________________________________________________");
     println!(
         "{} ({}) {} replies",
         comment
@@ -440,5 +441,4 @@ pub fn print_comment(comment: Comment) {
         crate::utils::unix_date_to_readable(comment.date.as_str())
     );
     println!("{}", comment.comment_text);
-    println!("_________________________________________________________________________");
 }

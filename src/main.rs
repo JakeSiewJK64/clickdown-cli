@@ -17,6 +17,7 @@ pub enum Domain {
     Status,
     Name,
     Comment,
+    Thread,
 }
 
 // CREATE directive.When provided, creates a new task.
@@ -232,6 +233,47 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
                 return Ok(());
             }
+            Domain::Thread => {
+                // get comment input
+                let Ok(comment) = inquire::Editor::new("Enter comment").prompt() else {
+                    return Ok(());
+                };
+
+                println!("your comment: {}", comment);
+
+                match inquire::Confirm::new("Send comment?")
+                    .with_help_message("'y' for yes or 'n' for no")
+                    .prompt()
+                {
+                    Ok(true) => {
+                        // send comment
+                        clickup::submit_thread_comment(
+                            &args.thread_id,
+                            clickup::SubmitCommentPayload {
+                                notify_all: false,
+                                comment_text: comment,
+                            },
+                        )
+                        .expect("There was a problem submitting comment");
+
+                        let Ok(comments) = clickup::get_thread(&args.thread_id) else {
+                            return Ok(());
+                        };
+
+                        for comment in comments.comments.into_iter() {
+                            clickup::print_comment(comment);
+                        }
+                    }
+                    Ok(false) => {
+                        println!("cancelled")
+                    }
+                    Err(_) => {
+                        println!("there was a problem submitting comment.")
+                    }
+                }
+
+                return Ok(());
+            },
         }
     }
 

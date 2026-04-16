@@ -18,14 +18,21 @@ pub fn get_home_dir() -> String {
     home_dir
 }
 
-pub fn render_task_table(table: &mut crate::Table, tasks: Vec<crate::clickup::Task>, total: usize) {
-    table.set_header(crate::Row::from(vec![
-        "",
-        "ID",
-        "Created on",
-        "Assigned",
-        "Name",
-    ]));
+pub fn render_table(columns: Vec<&str>, rows: Vec<Vec<crate::Cell>>) {
+    let mut table = crate::Table::new();
+    table
+        .load_preset(crate::UTF8_FULL)
+        .apply_modifier(crate::UTF8_ROUND_CORNERS)
+        .set_content_arrangement(crate::ContentArrangement::Dynamic);
+    table.set_header(crate::Row::from(columns));
+    table.add_rows(rows);
+    println!("{}", table);
+}
+
+pub fn render_task_table(tasks: Vec<crate::clickup::Task>, total: usize) {
+    let header = vec!["", "ID", "Created on", "Assigned", "Name"];
+    let mut rows: Vec<Vec<crate::Cell>> = vec![];
+
     for task in tasks.iter() {
         let id: &str = &task.id;
         let name: &str = &task.name;
@@ -48,7 +55,7 @@ pub fn render_task_table(table: &mut crate::Table, tasks: Vec<crate::clickup::Ta
         let r = u8::from_str_radix(&hex_color[0..2], 16).unwrap_or(0);
         let g = u8::from_str_radix(&hex_color[2..4], 16).unwrap_or(0);
         let b = u8::from_str_radix(&hex_color[4..6], 16).unwrap_or(0);
-        table.add_row(vec![
+        let row = vec![
             crate::Cell::new(status)
                 .add_attribute(comfy_table::Attribute::Bold)
                 .fg(comfy_table::Color::Rgb { r, g, b }),
@@ -56,8 +63,9 @@ pub fn render_task_table(table: &mut crate::Table, tasks: Vec<crate::clickup::Ta
             crate::Cell::new(unix_date_to_readable(date_created)),
             crate::Cell::new(assignees.join(",")),
             crate::Cell::new(name),
-        ]);
+        ];
+        rows.push(row);
     }
-    println!("{}", table);
     println!("Showing {} of {}.", tasks.len(), total);
+    render_table(header, rows);
 }

@@ -1,3 +1,5 @@
+use inquire::{Autocomplete, autocompletion::Replacement};
+
 // format date created to readable date string
 pub fn unix_date_to_readable(date_milis: &str) -> String {
     let timestamp = date_milis.parse::<i64>().unwrap();
@@ -67,4 +69,31 @@ pub fn render_task_table(tasks: Vec<crate::clickup::Task>, total: usize) {
     }
     render_table(header, rows);
     println!("Showing {} of {}.", tasks.len(), total);
+}
+
+#[derive(Clone)]
+pub struct CustomAutoComplete {
+    pub options: Vec<String>,
+}
+
+impl Autocomplete for CustomAutoComplete {
+    fn get_suggestions(&mut self, input: &str) -> Result<Vec<String>, inquire::CustomUserError> {
+        let result = self
+            .options
+            .iter()
+            .filter(|value| value.contains(input))
+            .cloned()
+            .collect();
+
+        Ok(result)
+    }
+
+    fn get_completion(
+        &mut self,
+        _input: &str,
+        highlighted_suggestion: Option<String>,
+    ) -> Result<Replacement, inquire::CustomUserError> {
+        let res = highlighted_suggestion.map(|value| value.to_string());
+        Ok(res)
+    }
 }

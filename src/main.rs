@@ -301,10 +301,12 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 // todo: get member input
-                let Ok(target_member) = Select::new(
+                let Ok(target_member) = Text::new(
                     "Select member to assign: ".to_string().as_str(),
-                    member_mappings.keys().collect(),
                 )
+                .with_autocomplete(utils::CustomAutoComplete {
+                    options: member_mappings.keys().cloned().collect()
+                })
                 .prompt() else {
                     return Ok(());
                 };
@@ -315,7 +317,7 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                     return Ok(())
                 }
 
-                if let Some(member_id) = member_mappings.get(target_member) {
+                if let Some(member_id) = member_mappings.get(&target_member) {
                     println!("Selected member: {} ({})", target_member, member_id);
                     clickup::assign_task(
                         &task.id,

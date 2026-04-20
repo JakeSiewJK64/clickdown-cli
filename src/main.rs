@@ -3,6 +3,7 @@ use clap::{Parser, ValueEnum};
 use comfy_table::{Cell, ContentArrangement, Row, Table, presets::NOTHING};
 use inquire::{Select, Text};
 use std::path::PathBuf;
+use std::collections::HashMap;
 
 use crate::utils::render_table;
 
@@ -18,6 +19,7 @@ pub enum Domain {
     Name,
     Comment,
     Thread,
+    Assignee,
 }
 
 // CREATE directive.When provided, creates a new task.
@@ -58,7 +60,14 @@ pub struct Args {
     #[arg(short, long, default_value = "", required_if_eq("add", "task"))]
     list_id: String,
 
-    #[arg(short, long, default_value = "")]
+    #[arg(
+        short, 
+        long, 
+        default_value = "", 
+        required_if_eq_all([
+            ("modify", "assignee"),
+        ])
+    )]
     task_id: String,
 
     /// if provided, filters tasks by status
@@ -273,7 +282,52 @@ fn process_modify(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 return Ok(());
-            },
+            }
+            Domain::Assignee => {
+                // todo: fetch task by id
+                let Ok(task) = clickup::get_task(&args.task_id) else {
+                    return Ok(());
+                };
+
+                // todo: fetch all assignees
+                let Ok(members) = clickup::get_task_members(&task.list.id) else {
+                    return Ok(());
+                };
+
+                let mut member_mappings: HashMap<String, usize> = HashMap::new();
+
+                for member in members.members {
+                    member_mappings.insert(member.username, member.id);
+                }
+
+                // todo: get member input
+                let Ok(target_member) = Select::new(
+                    "Select member to assign: ".to_string().as_str(),
+                    member_mappings.keys().collect(),
+                )
+                .prompt() else {
+                    return Ok(());
+                };
+
+                // todo: check if user is already assigned, if so skip
+                if task.assignees.iter().any(|user|user.username == *target_member) {
+                    println!("{} already assigned to task {}", target_member, task.name);
+                    return Ok(())
+                }
+
+                if let Some(member_id) = member_mappings.get(target_member) {
+                    println!("Selected member: {} ({})", target_member, member_id);
+                    clickup::assign_task(
+                        &task.id,
+                        vec![*member_id],
+                    )?;
+                }
+
+                // todo: display task details
+                clickup::print_task_details(task, clickup::Comments { comments: vec![] });
+
+                return Ok(())
+            }
         }
     }
 

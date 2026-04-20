@@ -156,6 +156,7 @@ pub struct Task {
     pub folder: Folder,
     pub date_created: String,
     pub assignees: Vec<User>,
+    pub list: List,
 }
 
 #[derive(serde::Deserialize)]
@@ -345,6 +346,61 @@ pub fn update_task(
     Ok(response)
 }
 
+#[derive(serde::Deserialize)]
+pub struct TaskMembers {
+    pub members: Vec<User>,
+}
+
+pub fn get_task_members(task_id: &str) -> Result<TaskMembers, Box<dyn std::error::Error>> {
+    let client = reqwest::blocking::Client::new();
+    let headers = get_request_header()?;
+
+    let request = client
+        .get(format!(
+            "https://api.clickup.com/api/v2/list/{}/member",
+            task_id
+        ))
+        .headers(headers)
+        .send()?;
+
+    if request.status() != reqwest::StatusCode::OK {
+        let response = request.text()?;
+        eprintln!("{}", response);
+        std::process::exit(1);
+    }
+
+    let response: TaskMembers = request.json()?;
+    Ok(response)
+}
+
+pub fn assign_task(
+    task_id: &str,
+    add_assignees: Vec<usize>,
+) -> Result<Task, Box<dyn std::error::Error>> {
+    let client = reqwest::blocking::Client::new();
+    let headers = get_request_header()?;
+
+    let mut payload: HashMap<&str, HashMap<&str, Vec<usize>>> = HashMap::new();
+    let mut assignees: HashMap<&str, Vec<usize>> = HashMap::new();
+    assignees.insert("add", add_assignees);
+    payload.insert("assignees", assignees);
+
+    let request = client
+        .put(format!("https://api.clickup.com/api/v2/task/{}", task_id))
+        .headers(headers)
+        .json(&payload)
+        .send()?;
+
+    if request.status() != reqwest::StatusCode::OK {
+        let response = request.text()?;
+        eprintln!("{}", response);
+        std::process::exit(1);
+    }
+
+    let response: Task = request.json()?;
+    Ok(response)
+}
+
 #[derive(serde::Serialize)]
 pub struct SubmitCommentPayload {
     pub comment_text: String,
@@ -412,6 +468,12 @@ pub fn print_task_details(task: Task, comments: Comments) {
         "{}",
         task.status.status.to_uppercase().color(task.status.color)
     );
+    let assignees: Vec<String> = task
+        .assignees
+        .iter()
+        .map(|assignee| format!("{} ({})", assignee.username, assignee.id))
+        .collect();
+    println!("Assignees: {}", assignees.join(","));
 
     if comments.comments.is_empty() {
         return;

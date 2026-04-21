@@ -391,12 +391,30 @@ fn process_get(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             assignees: if args.assignee.is_empty() {
                 Vec::new()
             } else {
-                let Ok(assignee_ids) = args.assignee.parse::<usize>() else {
-                    println!("There was a problem parsing assignee ID");
-                    return Ok(());
-                };
+                let mut targets: Vec<usize> = vec![];
 
-                vec![assignee_ids]
+                // todo: check if assignee is numeric of contains characters
+                if args.assignee.parse::<usize>().is_ok() {
+                    // todo: return assignee id instead of checking for username
+                    println!("assignee id provided, skipping members fetch.");
+                    let id = &args.assignee.parse::<usize>()?;
+                    targets.push(*id);
+                } else {
+                    // todo: get members from list
+                    println!("assignee username provided, fetching list members.");
+                    let Ok(list_members) = clickup::get_task_members(&args.list_id) else {
+                        return Ok(());
+                    };
+                    for user in list_members.members {
+                        if user.username.contains(&args.assignee) {
+                            // todo: put assignee id into vector
+                            targets.push(user.id);
+                            break;
+                        }
+                    }
+                }
+
+                targets
             },
             statuses: if args.status.is_empty() {
                 vec![]

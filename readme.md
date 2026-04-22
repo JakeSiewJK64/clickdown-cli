@@ -16,7 +16,7 @@ Built for my own use but feel free to try.
 - [ ] (optional) Pagination.
 - [x] (optional) Respond to comments.
 - [ ] (optional) Render images to terminal.
-- [ ] (optional) Assign members to task.
+- [x] (optional) Assign members to task.
 - [ ] (optional) Caching because each call is expensive if the task list is long.
 
 ## Usage
